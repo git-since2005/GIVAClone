@@ -1,0 +1,27 @@
+@import "tailwindcss";
+
+body {
+  font-family: "Roboto";
+  overflow-x: hidden;
+}
+.home-bg{
+  background-image: url('https://img.freepik.com/premium-photo/gold-jewelry-accessories-marble_1195984-10263.jpg?semt=ais_hybrid');
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  width: 1463px;
+  height: 590px;
+}
+.sale{
+  font-family: "Dancing Script";
+}
+.hideScroll {
+  overflow: auto; /* Allows scrolling */
+  scrollbar-width: 0px; /* Hides scrollbar in Firefox */
+  -ms-overflow-style: none; /* Hides scrollbar in IE/Edge */
+}
+.hideScroll::-webkit-scrollbar {
+  width: 0px;
+  height: 0px;
+  display: none; /* Hides scrollbar in Chrome, Safari */
+}
