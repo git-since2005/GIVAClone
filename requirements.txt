@@ -4,6 +4,5 @@ python-dotenv
 bcrypt
 flask-cors
 uuid
-gridfs
 pyjwt
 bson
