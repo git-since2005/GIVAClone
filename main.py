@@ -15,7 +15,7 @@ from bson import ObjectId
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app, origins=["http://localhost:5173"])
+CORS(app, origins=["http://localhost:5173", "https://polite-pixie-5221e6.netlify.app/"])
 app.config["JSONIFY_PRETTYPRINT_REGULAR"] = False
 app.config["JSON_AS_ASCII"] = False
 client = MongoClient(os.getenv("uri"))
