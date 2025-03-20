@@ -15,7 +15,7 @@ from bson import ObjectId
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app, origins=["http://localhost:5173", "https://polite-pixie-5221e6.netlify.app"])
+CORS(app, origins=["http://localhost:5173"])
 app.config["JSONIFY_PRETTYPRINT_REGULAR"] = False
 app.config["JSON_AS_ASCII"] = False
 client = MongoClient(os.getenv("uri"))
@@ -33,13 +33,19 @@ def register():
         data = request.get_json()
         email = data.get("email")
         password =  data.get("password")
+        name = data.get("name")
+        user = data.get("user")
+        phone =  data.get("phone")
         if not email or (not password):
             return jsonify({"status":"data"}), 400
         checker = db.Users.find_one({"email":email})
         if checker:
             return jsonify({"stauts":"email"}), 409
+        checker2 = db.Users.find_one({"phone":phone})
+        if checker2:
+            return jsonify({"status":"phone"}), 409
         hashed = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt(13))
-        db.Users.insert_one({"email":email, "password":hashed.decode("utf-8"), "userId":str(uuid.uuid4())[:50]})
+        db.Users.insert_one({"name":name, "phone":phone, "user":user, "email":email, "password":hashed.decode("utf-8"), "userId":str(uuid.uuid4())[:50]})
         print(checker)
         return jsonify({"status":"success"}), 200
     except Exception as e:
@@ -118,6 +124,7 @@ def getImage():
     try:
         data = request.form
         filename = data.get("filename")
+        print(filename)
         file = fs.find_one({"_id":ObjectId(filename)})
         if not file:
             return jsonify({"status":"not found"}), 404
@@ -135,10 +142,18 @@ def addProduct():
         title = data.get("title")
         price = data.get("price")
         desc = data.get("desc")
+        imgURL = data.get("image")
+        quantity = data.get("quantity")
+        print(data)
+        if(imgURL!=""):
+            inserter = db.Product.insert_one({"imageLink":imgURL, "title":title, "price":int(price), "desc":desc, "user":user, "productId":str(uuid.uuid4())[:50]})
+            if inserter:
+                return jsonify({"status":"success"}), 200
+        print(data)
         image = request.files['image']
         file_id = fs.put(image, filename=image.filename)
         if file_id:
-            db.Product.insert_one({"image":file_id, "title":title, "price":int(price), "desc":desc, "user":user, "productId":str(uuid.uuid4())[:50]})
+            db.Product.insert_one({"imageId":file_id, "title":title, "price":int(price), "desc":desc, "user":user, "productId":str(uuid.uuid4())[:50]})
             return jsonify({"stauts":"success"}), 200
         else:
             return jsonify({"status":"server"}), 500
@@ -166,7 +181,8 @@ def fetchCreatedProducts():
         user = data.get("user")
         list1 = list(db.Product.find({"user":user}, {"_id":0}))
         for i in range(len(list1)):
-            list1[i]['image'] = str(list1[i]['image'])
+            if "imageLink" not in list1[i]:
+                list1[i]['image'] = str(list1[i]['image'])
         return jsonify(list1), 200
     except:
         return jsonify({"stauts":"server"}), 500
@@ -189,7 +205,8 @@ def fetchDatabase():
     try:
         list1 = [i for i in list(db.Product.find({}, {"_id":0}))]
         for i in range(len(list1)):
-            list1[i]['image'] = str(list1[i]['image'])
+            if "imageLink" not in list1[i]:
+                list1[i]['image'] = str(list1[i]['image'])
         return jsonify(list1), 200
     except Exception as e:
         print(e)
@@ -205,4 +222,4 @@ def userData():
         return jsonify({"status":"server"}), 500
 
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=8000)
+    app.run(debug=True, host="127.0.0.1", port=8000)
