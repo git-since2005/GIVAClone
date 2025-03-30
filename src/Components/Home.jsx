@@ -1,8 +1,29 @@
-import React from "react";
+import React, {useState, useEffect} from "react";
 import Logo from "../assets/GDLR0165_1-removebg-preview.png";
 import Category from "./Category"
+import Product from "./Product"
 
 function Home() {
+  const [products, setProducts] = useState({});
+  const [image, setImage] = useState(" ")
+
+  async function fetchDatabase() {
+    let response = await fetch(
+      `${import.meta.env.VITE_API_URL}/fetchDatabase`,
+      {
+        method: "POST",
+      }
+    );
+    if (response.ok) {
+      let json = await response.json();
+      setProducts(json);
+    }
+  }
+
+  useEffect(()=>{
+    fetchDatabase()
+  }, [])
+
   return (
     <div className=" h-full w-full flex flex-col ">
       <div className=" text m-auto flex flex-col home-bg ">
@@ -18,6 +39,23 @@ function Home() {
             <br /> to give on your forever piece.
           </h1>
         </div>
+      </div>
+      <div className="products flex">
+      {window.location.search === "" &&
+        Object.keys(products).map((e) => {
+          return (
+            <Product
+              key={products[e].id}
+              id={products[e].productId}
+              title={products[e].title}
+              img={products[e].image || products[e].imageLink}
+              desc={products[e].desc}
+              price={products[e].price}
+            />
+          );
+          // if(products[e].category == "jewelery"){
+          // }
+        })}
       </div>
       <div className="products h-full w-screen flex flex-col shadow-[inset_0px_30px_70px_rgba(0,0,0,0.3)] bg-white">
         <div className="upper m-auto flex mt-10">

@@ -15,7 +15,7 @@ from bson import ObjectId
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app, origins=["http://localhost:5173", "https://polite-pixie-5221e6.netlify.app/"])
+CORS(app, origins=["http://localhost:5173"])
 app.config["JSONIFY_PRETTYPRINT_REGULAR"] = False
 app.config["JSON_AS_ASCII"] = False
 client = MongoClient(os.getenv("uri"))
@@ -46,10 +46,8 @@ def register():
             return jsonify({"status":"phone"}), 409
         hashed = bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt(13))
         db.Users.insert_one({"name":name, "phone":phone, "user":user, "email":email, "password":hashed.decode("utf-8"), "userId":str(uuid.uuid4())[:50]})
-        print(checker)
         return jsonify({"status":"success"}), 200
     except Exception as e:
-        print(e)
         return jsonify({"status":"server"}), 500
 
 @app.route("/signin", methods = ["POST"])
@@ -95,12 +93,10 @@ def countCart():
 
 @app.route("/deleteCart", methods=['PUT'])
 def deleteCart():
-    print("Deleting")
     data = request.get_json()
     productId = data.get("product")
     userId = data.get("user")
     deleter = db.Cart.delete_one({"user":userId, "product":productId})
-    print(deleter)
     if deleter:
         return jsonify({"status":"done"}), 200
 
@@ -124,14 +120,12 @@ def getImage():
     try:
         data = request.form
         filename = data.get("filename")
-        print(filename)
         file = fs.find_one({"_id":ObjectId(filename)})
         if not file:
             return jsonify({"status":"not found"}), 404
         response = io.BytesIO(file.read())
         return send_file(response, mimetype="image/png"), 200
     except Exception as e:
-        print(e)
         return jsonify({"status":"server"}), 500
     
 @app.route("/addProduct", methods=["POST"])
@@ -144,21 +138,45 @@ def addProduct():
         desc = data.get("desc")
         imgURL = data.get("image")
         quantity = data.get("quantity")
-        print(data)
-        if(imgURL!=""):
+        if(imgURL is not None):
             inserter = db.Product.insert_one({"imageLink":imgURL, "title":title, "price":int(price), "desc":desc, "user":user, "productId":str(uuid.uuid4())[:50]})
             if inserter:
                 return jsonify({"status":"success"}), 200
-        print(data)
         image = request.files['image']
         file_id = fs.put(image, filename=image.filename)
         if file_id:
-            db.Product.insert_one({"imageId":file_id, "title":title, "price":int(price), "desc":desc, "user":user, "productId":str(uuid.uuid4())[:50]})
+            db.Product.insert_one({"image":file_id, "title":title, "price":int(price), "desc":desc, "user":user, "productId":str(uuid.uuid4())[:50]})
             return jsonify({"stauts":"success"}), 200
         else:
             return jsonify({"status":"server"}), 500
     except Exception as e:
-        print(e)
+        return jsonify({"status":"server"}), 500
+
+@app.route("/updateProduct", methods = ['POST'])
+def updateProduct():
+    try:
+        data = request.form
+        product = data.get("id")
+        title = data.get("title")
+        price = data.get("price")
+        desc = data.get("desc")
+        if(data.get("type") == "link"):
+            link = data.get("link")
+            db.Product.update_one({"productId":product}, {"$set":{"imageLink":link}})
+        else:
+            image = request.files['image']
+            imageId = data.get("imageId")
+            finder = db.Product.find_one({"image":imageId})
+            if finder:
+                try:
+                    deleter = fs.delete(ObjectId(finder['image']))
+                except:
+                    return jsonify({"status":"failed"}), 500
+            newImageId = fs.put(image, filename = image.filename)
+            db.Product.update_one({"image":ObjectId(newImageId)})
+        db.Product.update({"productId":product}, {"$set":{"title":title, "desc":desc, "price":price}})
+        return jsonify({"status":"success"}), 200
+    except Exception as e:
         return jsonify({"status":"server"}), 500
 
 @app.route("/deleteProduct", methods=['POST'])
@@ -197,7 +215,6 @@ def fetchProducts():
             list1[i]['image'] = str(list1[i]['image'])
         return jsonify(list1), 200
     except Exception as e:
-        print(e)
         return jsonify({"status":"server"}), 500
 
 @app.route("/fetchDatabase", methods = ['POST'])
@@ -209,9 +226,90 @@ def fetchDatabase():
                 list1[i]['image'] = str(list1[i]['image'])
         return jsonify(list1), 200
     except Exception as e:
+        return jsonify({"status":"server"}), 500
+
+@app.route("/createOrder", methods=["POST"])
+def create_order():
+    """Creates a new order with amount, product_id, and user_id"""
+
+    data = request.json
+    id = jwt.decode(data.get("token"), key=os.getenv("secret"), algorithms=["HS256"])
+
+    # Validate ObjectIds
+    try:
+        product_id = data.get("productId")
+        user_id = data.get("userId")
+        checked = data.get("coupon")
+    except:
+        return jsonify({"error": "Invalid product_id or user_id"}), 400
+
+    # Create order document
+    vendor = db.Product.find_one({"productId":product_id})
+    print(vendor, product_id)
+    order = {
+        "order_id":str(uuid.uuid4())[:40],
+        "product_id": product_id,
+        "user_id": user_id,
+        "created_at": datetime.utcnow(),
+        "vendor":vendor['user'],
+        "status":"pending",
+        "coupon":checked
+    }
+
+    # Insert into MongoDB
+    inserted_order = db.Orders.insert_one(order)
+
+    return jsonify({
+        "status": "success",
+    }), 201
+
+@app.route("/shipOrder", methods=['POST'])
+def shipOrder():
+    try:
+        data = request.get_json()
+        token = data.get("token")
+        id = jwt.decode(token, key=os.getenv("secret"), algorithms=["HS256"])
+        product = data.get("order")
+        db.Orders.update_one({"order_id":product}, {"$set":{"status":"shipped"}})
+        print("Hi", db.Orders.find_one({"order_id":product}), product, data)
+        return jsonify({"status":"success"}), 200
+    except Exception as e:
         print(e)
         return jsonify({"status":"server"}), 500
-    
+
+@app.route("/customerOrders", methods=['POST'])
+def customerOrder():
+    data = request.get_json()
+    try:
+        token = data.get("token")
+        id = jwt.decode(token, key=os.getenv("secret"), algorithms=['HS256'])
+        orders = list(db.Orders.find({"vendor":id['id'], "status":"pending"}))
+        for i in range(len(orders)):
+            orders[i]["_id"] = str(orders[i]['_id'])
+            orders[i]['title'] = db.Product.find_one({"productId":orders[i]["product_id"]}, {"_id":0, "title":1})['title']
+        return jsonify({"status":"success", "orders":orders}), 200
+    except Exception as e:
+        print(e)
+        return jsonify({"status":"server"}), 500
+
+@app.route("/orderHistory", methods = ['POST'])
+def orderHistory():
+    try:
+        data = request.get_json()
+        token = data.get("token")
+        id = jwt.decode(token, key=os.getenv("secret"), algorithms=['HS256'])
+        products = []
+        ids = list(db.Orders.find({"user_id":id['id']}))
+        for i in ids:
+            products.append(db.Product.find_one({"productId":i['product_id']}, {"_id":0}))
+        print(products)
+        for i in range(len(products)):
+            products[i]['image'] = str(products[i]['image'])
+            products[i]['status'] = ids[i]['status']
+        return jsonify({"status":"success", "orders":products}), 200
+    except:
+        return jsonify({"status":"server"}), 500
+
 @app.route("/userData", methods= ['POST'])
 def userData():
     try:
@@ -222,4 +320,4 @@ def userData():
         return jsonify({"status":"server"}), 500
 
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=8000)
+    app.run(debug=True, host="127.0.0.1", port=8000)

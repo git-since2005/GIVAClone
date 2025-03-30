@@ -5,20 +5,28 @@ function Product(props) {
   const [product, setProduct] = useState({});
 
   async function getImage(img) {
-    const formData = new FormData();
-    formData.append("filename", props.img || img);
-    console.log(props.img, img);
-    let response = await fetch(`${import.meta.env.VITE_API_URL}/getImage`, {
-      method: "POST",
-      headers: {
-        Accept: "image/png",
-      },
-      body: formData,
-    });
-    console.log(formData);
-    let blob = await response.blob();
-    const url = URL.createObjectURL(blob);
-    setImage(url);
+    let image = "";
+    if (props.img) {
+      image = props.img;
+    } else if (img) {
+      image = img;
+    }
+    if (!image.includes(".")) {
+      const formData = new FormData();
+      formData.append("filename", props.img || img);
+      let response = await fetch(`${import.meta.env.VITE_API_URL}/getImage`, {
+        method: "POST",
+        headers: {
+          Accept: "image/png",
+        },
+        body: formData,
+      });
+      let blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      setImage(url);
+    } else {
+      setImage(props.img || img);
+    }
   }
 
   useEffect(() => {
@@ -36,6 +44,7 @@ function Product(props) {
       if (response.ok) {
         let json = await response.json();
         setProduct(json);
+        console.log("Yes");
         getImage(json[0].image);
       }
     };
@@ -58,17 +67,10 @@ function Product(props) {
           product: id,
         }),
       });
-      console.log(response);
       if (response.ok) {
         window.location.reload();
       }
     } else {
-      console.log(
-        JSON.stringify({
-          token: JSON.parse(localStorage.getItem("user"))["token"],
-          product: props.id,
-        })
-      );
       let response = fetch(`${import.meta.env.VITE_API_URL}/deleteProduct`, {
         method: "POST",
         headers: {
@@ -87,7 +89,10 @@ function Product(props) {
 
   return (
     <div
-      onClick={() => (window.location += "?product=" + props.id)}
+      onClick={() => {
+        let loc = window.location.toString();
+        window.location = loc.split("/")[0] + "/shop?product=" + props.id;
+      }}
       className=" rounded-lg shadow-lg rounded flex flex-col transition w-[200px] h-[300px] bg-white hover:scale-[1.1] cursor-pointer "
     >
       {product[0] ? (
@@ -118,6 +123,7 @@ function Product(props) {
           <h1 className=" text-lg font-light m-auto ml-3 ">{props.title}</h1>
           <h1 className=" text-base font-light m-auto ml-3 ">{props.desc}</h1>
           <h1 className=" text-sm font-light m-auto ml-3 ">{props.price}$</h1>
+          <h1 className={`${props.status=="shipped"?"text-orange-600":props.status=="pending"?"text-orange-800":"text-green-500"} text-sm font-semibold m-auto ml-3 `}>Status: {props.status}</h1>
         </>
       )}
     </div>
