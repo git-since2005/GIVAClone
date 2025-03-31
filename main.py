@@ -160,21 +160,7 @@ def updateProduct():
         title = data.get("title")
         price = data.get("price")
         desc = data.get("desc")
-        if(data.get("type") == "link"):
-            link = data.get("link")
-            db.Product.update_one({"productId":product}, {"$set":{"imageLink":link}})
-        else:
-            image = request.files['image']
-            imageId = data.get("imageId")
-            finder = db.Product.find_one({"image":imageId})
-            if finder:
-                try:
-                    deleter = fs.delete(ObjectId(finder['image']))
-                except:
-                    return jsonify({"status":"failed"}), 500
-            newImageId = fs.put(image, filename = image.filename)
-            db.Product.update_one({"image":ObjectId(newImageId)})
-        db.Product.update({"productId":product}, {"$set":{"title":title, "desc":desc, "price":price}})
+        db.Product.update_one({"productId":product}, {"$set":{"title":title, "desc":desc, "price":price}})
         return jsonify({"status":"success"}), 200
     except Exception as e:
         return jsonify({"status":"server"}), 500
@@ -302,10 +288,10 @@ def orderHistory():
         ids = list(db.Orders.find({"user_id":id['id']}))
         for i in ids:
             products.append(db.Product.find_one({"productId":i['product_id']}, {"_id":0}))
-        print(products)
         for i in range(len(products)):
             products[i]['image'] = str(products[i]['image'])
             products[i]['status'] = ids[i]['status']
+        print(products)
         return jsonify({"status":"success", "orders":products}), 200
     except:
         return jsonify({"status":"server"}), 500
@@ -315,9 +301,10 @@ def userData():
     try:
         data = request.get_json()
         user = data.get("user")
-        return jsonify({"name":db.Users.find_one({"userId":user})['email']}), 200
+        cursor = db.Users.find_one({"userId":user})
+        return jsonify({"name":cursor['email'], "user":cursor['user']}), 200
     except:
         return jsonify({"status":"server"}), 500
 
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=8000)
+    app.run(debug=True, host="127.0.0.1", port=8000)
