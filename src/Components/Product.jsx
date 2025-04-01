@@ -123,7 +123,7 @@ function Product(props) {
           <h1 className=" text-lg font-light m-auto ml-3 ">{props.title}</h1>
           <h1 className=" text-base font-light m-auto ml-3 ">{props.desc}</h1>
           <h1 className=" text-sm font-light m-auto ml-3 ">{props.price}$</h1>
-          <h1 className={`${props.status=="shipped"?"text-orange-600":props.status=="pending"?"text-orange-800":"text-green-500"} text-sm font-semibold m-auto ml-3 `}>Status: {props.status}</h1>
+          {window.location.pathname == "/user" && <h1 className={`${props.status=="shipped"?"text-orange-600":props.status=="pending"?"text-orange-800":"text-green-500"} text-sm font-semibold m-auto ml-3 `}>Status: {props.status}</h1>}
         </>
       )}
     </div>

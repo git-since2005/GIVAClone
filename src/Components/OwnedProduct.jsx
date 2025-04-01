@@ -2,13 +2,13 @@ import React, { useState, useEffect } from "react";
 
 function OwnedProduct(props) {
   const [form, setForm] = useState({
-    title: "",
-    desc: "",
-    price: 0,
+    title: props.title,
+    desc: props.desc,
+    price: props.price,
     imageLink: "",
   });
-  const [img, setImg] = useState("")
-  const [image, setImage] = useState(null)
+  const [img, setImg] = useState("");
+  const [image, setImage] = useState(null);
   let inputStyles =
     " p-1 w[9%] border-1 border-black rounded m-auto resize-none ";
 
@@ -44,7 +44,7 @@ function OwnedProduct(props) {
     }
   }
 
-  async function updateItem(id){
+  async function updateItem(id) {
     const formData = new FormData();
     formData.append("record_id", form.record_id);
     formData.append("title", form.title);
@@ -52,21 +52,29 @@ function OwnedProduct(props) {
     formData.append("price", form.price);
     formData.append("image", image);
     try {
-        const response = await fetch(`${API_URL}/updateProduct`, {
-          method: "POST",
-          body: formData,
-        });
-  
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/updateProduct`, {
+        method: "POST",
+        headers:{
+          "Content-type":"application/json"
+        },
+        body: JSON.stringify({
+          title: form["title"],
+          desc: form["desc"],
+          price: form["price"],
+          product: props.id
+        }),
+      });
+
+      if (response.ok) {
         const data = await response.json();
-        if (response.ok) {
-          alert("Product updated successfully!");
-        } else {
-          alert(`Error: ${data.error}`);
-        }
-      } catch (error) {
-        console.error("Error updating product:", error);
-        alert("Failed to update product.");
+        alert("Product updated successfully!");
+      } else {
+        alert(`Error: Updating in Product`);
       }
+    } catch (error) {
+      console.error("Error updating product:", error);
+      alert("Failed to update product.");
+    }
   }
   async function getImage(img) {
     let image = "";
@@ -92,45 +100,29 @@ function OwnedProduct(props) {
       setImg(props.img || img);
     }
   }
-  useEffect(()=>{
-    getImage(props.img)
-  }, [])
+  useEffect(() => {
+    getImage(props.img);
+  }, []);
   return (
     <div className=" w-[100%] rounded flex shadow-lg m-auto ">
-      <div className="imgLink">
-        <img src={img} className=" w-[110px] h-[110px] " />
-        {props.imgLink ? (
-          <textarea
-            type="text"
-            className={
-              " w[9%] border-1 border-black rounded m-auto resize-none outline-none mt-2 h-[80px] "
-            }
-            placeholder="Image link"
-            name="imgLink"
-            onChange={(e) =>
-              setForm({ ...form, [e.target.name]: e.target.value })
-            }
-            value={props.img}
-          ></textarea>
-        ) : <input type="file" />}
-      </div>
+      <img src={img} className=" w-[110px] h-[110px] " />
       <input
         className={inputStyles}
         type="text"
-        value={props.title}
+        value={form['title']}
         name="title"
         onChange={(e) => setForm({ ...form, [e.target.name]: e.target.value })}
       />
       <textarea
         className={inputStyles}
-        value={props.desc}
+        value={form['desc']}
         onChange={(e) => setForm({ ...form, [e.target.name]: e.target.value })}
         name="desc"
       ></textarea>
       <input
         type="number"
         name="price"
-        value={props.price}
+        value={form['price']}
         className={inputStyles}
         onChange={(e) => setForm({ ...form, [e.target.name]: e.target.value })}
       />

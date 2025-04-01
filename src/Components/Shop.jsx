@@ -13,6 +13,9 @@ function Shop() {
   async function buyProduct(id){
     try {
       let datas = JSON.parse(localStorage.getItem("user"))
+      if(!localStorage.getItem("user")){
+        window.location.pathname = "/login"
+      }
       const response = await fetch(`${import.meta.env.VITE_API_URL}/createOrder`, {
         method: "POST",
         headers: {
@@ -83,6 +86,9 @@ function Shop() {
   }, []);
 
   async function addCart(id) {
+    if(!localStorage.getItem("user")){
+      window.location.pathname = "/login"
+    }
     let response = await fetch(`${import.meta.env.VITE_API_URL}/addCart`, {
       method: "POST",
       headers: {
