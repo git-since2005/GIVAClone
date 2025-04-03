@@ -155,8 +155,8 @@ def addProduct():
 @app.route("/updateProduct", methods = ['POST'])
 def updateProduct():
     try:
-        data = request.form
-        product = data.get("id")
+        data = request.get_json()
+        product = data.get("product")
         title = data.get("title")
         price = data.get("price")
         desc = data.get("desc")
