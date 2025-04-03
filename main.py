@@ -198,7 +198,8 @@ def fetchProducts():
         product = data.get("product")
         list1 = list(db.Product.find({"productId":product}, {"_id":0}))
         for i in range(len(list1)):
-            list1[i]['image'] = str(list1[i]['image'])
+            if "imageLink" not in list1[i]:
+                list1[i]['image'] = str(list1[i]['image'])
         return jsonify(list1), 200
     except Exception as e:
         return jsonify({"status":"server"}), 500
